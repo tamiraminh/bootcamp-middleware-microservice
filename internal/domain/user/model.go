@@ -47,6 +47,24 @@ func CheckPasswordHash(password, hash string) bool {
     return err == nil
 }
 
+func (u *User) Update(req UserRequestFormat, user User) (err error) {
+	hashPassword, err := HashPassword(req.Password)
+	if err != nil {
+		log.Println(err.Error())
+		return 
+	}
+
+	u.Username = req.Username
+	u.Name = req.Name
+	u.Password = hashPassword
+	u.Role = req.Role
+	u.UpdatedAt = null.TimeFrom(time.Now())
+	u.UpdatedBy = nuuid.From(user.Id)
+
+
+	return
+}
+
 func (u User) NewFromRequestFormat(req UserRequestFormat) (newUser User, err error) {
 	userID, _ := uuid.NewV4()
 	passwordHashed, err := HashPassword(req.Password)
@@ -162,8 +180,6 @@ func (l Login) NewFromRequestFormat(req LoginRequestFormat) (newLogin Login, err
 
 func (l Login) ToResponseFormat() LoginResponseFormat {
 	accessToken, err := GenerateJWT(l.User)
-
-	
 
 	if err != nil {
 		log.Println(err.Error())

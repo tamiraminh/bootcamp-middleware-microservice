@@ -117,13 +117,27 @@ func (h *UserHandler) Validate(w http.ResponseWriter, r *http.Request) {
 
 
 func (h *UserHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
-	
+
 	claims, ok := r.Context().Value("claims").(*jwtmodel.Claims)
 	if !ok {
 		http.Error(w, "Error Claims", http.StatusUnauthorized)
 		return
 	}
 
+	decoder := json.NewDecoder(r.Body)
+	var requestFormat user.UserRequestFormat
+	err := decoder.Decode(&requestFormat)
+	if err != nil {
+		response.WithError(w, failure.BadRequest(err))
+		return
+	}
 
-	response.WithJSON(w, http.StatusOK, claims)
+	user, err := h.UserService.Update(claims.Username, requestFormat)
+	if err != nil {
+		response.WithError(w, err)
+		return
+	}
+
+
+	response.WithJSON(w, http.StatusOK, user)
 }

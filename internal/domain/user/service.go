@@ -9,6 +9,7 @@ type UserService interface {
 	Create(requestFormat UserRequestFormat) (user User, err error)
 	Login(requestFormat LoginRequestFormat) (login Login, err error)
 	ResolveByUsername(username string) (user User, err error)
+	Update(username string,requestFormat UserRequestFormat) (user User, err error)
 }
 
 type UserServiceImpl struct {
@@ -74,3 +75,19 @@ func (s *UserServiceImpl) ResolveByUsername(username string) (user User, err err
 	return
 }
 
+func (s *UserServiceImpl) Update(username string,requestFormat UserRequestFormat) (user User, err error)  {
+	user, err = s.UserRepository.ResolveByUsername(username)
+	if err != nil {
+		return
+	}
+
+	err = user.Update(requestFormat, user)
+	if err != nil {
+		return
+	}
+
+	err = s.UserRepository.Update(user)
+
+
+	return
+}

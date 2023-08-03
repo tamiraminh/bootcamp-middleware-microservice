@@ -14,6 +14,7 @@ import (
 var userQueries = struct {
 	selectUser		string
 	insertUser 		string 
+	updateUser		string
 } {
 	selectUser: `SELECT * FROM users`,
 	insertUser: `
@@ -43,12 +44,27 @@ var userQueries = struct {
 		:deletedBy
 	  )
 	`,
+	updateUser: `
+	UPDATE users
+	SET
+	  	username = :username,
+		name = :name,
+		password = :password,
+		role = :role,
+		createdAt = :createdAt,
+		createdBy = :createdBy,
+		updatedAt = :updatedAt,
+		updatedBy = :updatedBy,
+		deletedAt = :deletedAt,
+		deletedBy = :deletedBy
+	WHERE id = :id`,
 }
 
 type UserRepository interface {
 	Create(user User) (err error)
 	ExistsByID(id uuid.UUID) (exists bool, err error)
 	ResolveByUsername(username string) (user User, err error)
+	Update(user User) (err error)
 
 	
 }
@@ -86,6 +102,29 @@ func (r *UserRepositoryMySQL) Create(user User) (err error)  {
 	})
 }
 
+func (r *UserRepositoryMySQL) Update(user User) (err error) {
+	exists, err := r.ExistsByID(user.Id)
+	if err != nil {
+		logger.ErrorWithStack(err)
+		return
+	}
+
+	if !exists {
+		err = failure.NotFound("user")
+		logger.ErrorWithStack(err)
+		return
+	}
+
+	return r.DB.WithTransaction(func(tx *sqlx.Tx, e chan error) {
+		if err := r.txUpdate(tx, user); err != nil {
+			e <- err
+			return
+		}
+
+		e <- nil
+	})
+}
+
 
 func (r *UserRepositoryMySQL) ExistsByID(id uuid.UUID) (exists bool, err error) {
 	err = r.DB.Read.Get(
@@ -115,6 +154,23 @@ func (r *UserRepositoryMySQL) ResolveByUsername(username string) (user User, err
 
 func (r *UserRepositoryMySQL) txCreate(tx *sqlx.Tx, user User) (err error) {
 	stmt, err := tx.PrepareNamed(userQueries.insertUser)
+	if err != nil {
+		logger.ErrorWithStack(err)
+		return
+	}
+	defer stmt.Close()
+
+	_, err = stmt.Exec(user)
+	if err != nil {
+		logger.ErrorWithStack(err)
+	}
+
+	return
+}
+
+
+func (r *UserRepositoryMySQL) txUpdate(tx *sqlx.Tx, user User) (err error) {
+	stmt, err := tx.PrepareNamed(userQueries.updateUser)
 	if err != nil {
 		logger.ErrorWithStack(err)
 		return
