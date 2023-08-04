@@ -31,3 +31,10 @@ To run this program, run this command in root terminal
 ```
 go run . 
 ```
+
+## Improvement After Huddle
+1. Add validator to User Struct 
+2. Repair flow generate Token from model to service 
+3. Secret using Config, not directly using viper 
+4. repair table to course not related to user table 
+5. Add Bearer in JWT Token
