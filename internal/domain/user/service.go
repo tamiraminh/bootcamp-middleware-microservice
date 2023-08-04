@@ -1,8 +1,12 @@
 package user
 
 import (
+	"time"
+
 	"github.com/evermos/boilerplate-go/configs"
 	"github.com/evermos/boilerplate-go/shared/failure"
+	"github.com/evermos/boilerplate-go/shared/jwtmodel"
+	"github.com/golang-jwt/jwt"
 )
 
 type UserService interface {
@@ -36,6 +40,11 @@ func (s *UserServiceImpl) Create(requestFormat UserRequestFormat) (user User, er
 		return
 	}
 
+	user.AccessToken, err = s.GenerateJWT(user)
+	if err != nil {
+		return user, failure.InternalError(err)
+	} 
+
 	return
 }
 
@@ -59,7 +68,13 @@ func (s *UserServiceImpl) Login(requestFormat LoginRequestFormat) (login Login, 
 		return Login{}, failure.BadRequestFromString("Password False!")
 	}
 
+	login.AccessToken, err = s.GenerateJWT(user)
+	if err != nil {
+		return login, failure.InternalError(err)
+	} 
+
 	return
+
 }
 
 
@@ -90,4 +105,29 @@ func (s *UserServiceImpl) Update(username string,requestFormat UserRequestFormat
 
 
 	return
+}
+
+
+
+
+func (s *UserServiceImpl) GenerateJWT(user User) (string, error)  {
+	secret := configs.Get().App.JWTSecret
+
+	claims := jwtmodel.Claims{
+		UserId: user.Id,
+		Username: user.Username,
+		Role: user.Role,
+		StandardClaims: jwt.StandardClaims{
+			ExpiresAt: time.Now().Add(time.Hour * 1).Unix(),
+			Issuer: "evermos",
+		},
+	}
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	tokenString, err := token.SignedString([]byte(secret))
+	if err != nil {
+		return "", err 
+	}
+
+	return tokenString, nil
 }

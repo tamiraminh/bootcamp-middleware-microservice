@@ -6,30 +6,31 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/evermos/boilerplate-go/infras"
+	"github.com/evermos/boilerplate-go/configs"
 	"github.com/evermos/boilerplate-go/shared/jwtmodel"
 	"github.com/evermos/boilerplate-go/transport/http/response"
 	"github.com/golang-jwt/jwt"
-	"github.com/spf13/viper"
 )
 
 
 
 type JWTAuthentication struct {
+	Config *configs.Config
 }
 
+type ClaimsKey string
 
 const (
 	HeaderJWTAuthorization = "Authorization"
 )
 
-func ProvideJWTAuthentication(db *infras.MySQLConn) *JWTAuthentication {
-	return &JWTAuthentication{}
+func ProvideJWTAuthentication(config *configs.Config) *JWTAuthentication {
+	return &JWTAuthentication{config}
 }
 
 
-func validateJWT(tokenString string) (*jwtmodel.Claims, error)  {
-	secret := viper.GetString("JWT_SECRET")
+func (a *JWTAuthentication) ValidateJWT(tokenString string) (*jwtmodel.Claims, error)  {
+	secret := a.Config.App.JWTSecret
 
 	token, err := jwt.ParseWithClaims(tokenString, &jwtmodel.Claims{}, func(token *jwt.Token) (interface{}, error) {
 		return []byte(secret), nil
@@ -49,13 +50,15 @@ func validateJWT(tokenString string) (*jwtmodel.Claims, error)  {
 
 func (a *JWTAuthentication) JWTMiddlewareValidate(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		tokenString := r.Header.Get("Authorization")
+		tokenString := r.Header.Get("Authorization")[(len("Bearer ")):]
 		if tokenString == "" {
 			log.Println("no header")
 			response.WithJSON(w, http.StatusUnauthorized, "Unauthorized")
+			return
+
 		}
 
-		claims, err := validateJWT(tokenString)
+		claims, err := a.ValidateJWT(tokenString)
 		if err != nil {
 			log.Println(err)
 			response.WithJSON(w, http.StatusUnauthorized, "Unauthorized")
@@ -63,7 +66,7 @@ func (a *JWTAuthentication) JWTMiddlewareValidate(next http.Handler) http.Handle
 		}
 
 
-		ctx := context.WithValue(r.Context(), "claims", claims)
+		ctx := context.WithValue(r.Context(), ClaimsKey("claims"), claims)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }

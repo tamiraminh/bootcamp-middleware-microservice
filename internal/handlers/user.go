@@ -87,7 +87,7 @@ func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 
 
 func (h *UserHandler) Profile(w http.ResponseWriter, r *http.Request) {
-	claims, ok := r.Context().Value("claims").(*jwtmodel.Claims)
+	claims, ok := r.Context().Value(middleware.ClaimsKey("claims")).(*jwtmodel.Claims)
 	if !ok {
 		http.Error(w, "Error Claims", http.StatusUnauthorized)
 		return
@@ -105,7 +105,7 @@ func (h *UserHandler) Profile(w http.ResponseWriter, r *http.Request) {
 
 func (h *UserHandler) Validate(w http.ResponseWriter, r *http.Request) {
 	
-	claims, ok := r.Context().Value("claims").(*jwtmodel.Claims)
+	claims, ok := r.Context().Value(middleware.ClaimsKey("claims")).(*jwtmodel.Claims)
 	if !ok {
 		http.Error(w, "Error Claims", http.StatusUnauthorized)
 		return
@@ -118,7 +118,7 @@ func (h *UserHandler) Validate(w http.ResponseWriter, r *http.Request) {
 
 func (h *UserHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 
-	claims, ok := r.Context().Value("claims").(*jwtmodel.Claims)
+	claims, ok := r.Context().Value(middleware.ClaimsKey("claims")).(*jwtmodel.Claims)
 	if !ok {
 		http.Error(w, "Error Claims", http.StatusUnauthorized)
 		return

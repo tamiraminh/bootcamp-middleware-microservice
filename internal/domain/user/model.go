@@ -5,13 +5,10 @@ import (
 	"log"
 	"time"
 
-	"github.com/evermos/boilerplate-go/shared/jwtmodel"
 	"github.com/evermos/boilerplate-go/shared/nuuid"
 
 	"github.com/gofrs/uuid"
-	"github.com/golang-jwt/jwt"
 	"github.com/guregu/null"
-	"github.com/spf13/viper"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -21,6 +18,7 @@ type User struct {
 	Name 	 	string `db:"name"`
 	Password 	string `db:"password"`
 	Role 	 	string `db:"role"`
+	AccessToken string `db:"-"`
 	CreatedAt   time.Time   `db:"createdAt"`
 	CreatedBy   uuid.UUID   `db:"createdBy"`
 	UpdatedAt   null.Time   `db:"updatedAt"`
@@ -86,39 +84,15 @@ func (u User) NewFromRequestFormat(req UserRequestFormat) (newUser User, err err
 }
 
 
-func GenerateJWT(user User) (string, error)  {
-	secret := viper.GetString("JWT_SECRET")
 
-	claims := jwtmodel.Claims{
-		UserId: user.Id,
-		Username: user.Username,
-		Role: user.Role,
-		StandardClaims: jwt.StandardClaims{
-			ExpiresAt: time.Now().Add(time.Hour * 1).Unix(),
-			Issuer: "evermos",
-		},
-	}
-
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	tokenString, err := token.SignedString([]byte(secret))
-	if err != nil {
-		return "", err 
-	}
-
-	return tokenString, nil
-}
 
 func (u User) ToResponseFormat() UserResponseFormat {
-	accessToken, err := GenerateJWT(u)
-	if err != nil {
-		log.Println(err.Error())
-	} 
 	resp := UserResponseFormat{
 		Id: u.Id,
 		Username: u.Username,
 		Name: u.Name,
 		Role: u.Role,
-		AccessToken: accessToken,
+		AccessToken: u.AccessToken,
 		CreatedAt: u.CreatedAt,
 		CreatedBy: u.CreatedBy,
 		UpdatedAt: u.UpdatedAt,
@@ -140,7 +114,7 @@ type UserRequestFormat struct {
 }
 
 type UserResponseFormat struct {
-	Id uuid.UUID `db:"id"`
+	Id uuid.UUID 			`json:"id"`
 	Username 	string 		`json:"username"`
 	Name 	 	string 		`json:"name"`
 	Role 	 	string 		`json:"role"`
@@ -158,6 +132,7 @@ type Login struct {
 	Username 	string 		
 	Password 	string  	
 	User		User
+	AccessToken string
 	
 }
 
@@ -179,13 +154,9 @@ func (l Login) NewFromRequestFormat(req LoginRequestFormat) (newLogin Login, err
 }
 
 func (l Login) ToResponseFormat() LoginResponseFormat {
-	accessToken, err := GenerateJWT(l.User)
-
-	if err != nil {
-		log.Println(err.Error())
-	} 
+	
 	resp := LoginResponseFormat{
-		AccessToken: accessToken,
+		AccessToken: l.AccessToken,
 
 	}
 	return resp
