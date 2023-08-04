@@ -17,7 +17,10 @@ This service is have feature to
 mysql -u username -p database_name < path/to/bootcamp.sql
 ```
 4. copy .env.example file and rename to .env 
-5. fill the env with your credentials 
+5. fill the env with your credentials, database credentials and jwt secret specially
+```
+APP.JWT_SECRET=secret
+```
 6. run go generate command in root project to setup project
 ```
 go generate ./...
