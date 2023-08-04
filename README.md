@@ -3,8 +3,8 @@ This service is have feature to
 1. Login
 2. Register
 3. Validate JWT Token
-4. Update (only can access with Header Authorization JWT oken)
-5. Get Profile (only can access with Header Authorization JWT oken)
+4. Update (only can access with Header Authorization JWT Token)
+5. Get Profile (only can access with Header Authorization JWT Token)
 
 
 
