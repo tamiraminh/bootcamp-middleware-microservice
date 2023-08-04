@@ -8,6 +8,7 @@ import (
 
 	"github.com/evermos/boilerplate-go/infras"
 	"github.com/evermos/boilerplate-go/shared/jwtmodel"
+	"github.com/evermos/boilerplate-go/transport/http/response"
 	"github.com/golang-jwt/jwt"
 	"github.com/spf13/viper"
 )
@@ -51,13 +52,13 @@ func (a *JWTAuthentication) JWTMiddlewareValidate(next http.Handler) http.Handle
 		tokenString := r.Header.Get("Authorization")
 		if tokenString == "" {
 			log.Println("no header")
-			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			response.WithJSON(w, http.StatusUnauthorized, "Unauthorized")
 		}
 
 		claims, err := validateJWT(tokenString)
 		if err != nil {
 			log.Println(err)
-			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			response.WithJSON(w, http.StatusUnauthorized, "Unauthorized")
 			return
 		}
 
