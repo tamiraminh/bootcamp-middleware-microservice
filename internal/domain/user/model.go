@@ -5,6 +5,7 @@ import (
 	"log"
 	"time"
 
+	"github.com/evermos/boilerplate-go/shared"
 	"github.com/evermos/boilerplate-go/shared/nuuid"
 
 	"github.com/gofrs/uuid"
@@ -59,8 +60,13 @@ func (u *User) Update(req UserRequestFormat, user User) (err error) {
 	u.UpdatedAt = null.TimeFrom(time.Now())
 	u.UpdatedBy = nuuid.From(user.Id)
 
-
+	err = u.Validate()
 	return
+}
+
+func (u *User) Validate() (err error) {
+	validator := shared.GetValidator()
+	return validator.Struct(u)
 }
 
 func (u User) NewFromRequestFormat(req UserRequestFormat) (newUser User, err error) {
@@ -79,6 +85,8 @@ func (u User) NewFromRequestFormat(req UserRequestFormat) (newUser User, err err
 		CreatedAt:   time.Now(),
 		CreatedBy:   userID,
 	}
+
+	err = newUser.Validate()
 
 	return
 }
