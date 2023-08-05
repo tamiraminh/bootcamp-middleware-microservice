@@ -14,12 +14,12 @@ import (
 )
 
 type User struct {
-	Id uuid.UUID `db:"id"`
-	Username 	string `db:"username"`
-	Name 	 	string `db:"name"`
-	Password 	string `db:"password"`
-	Role 	 	string `db:"role"`
-	AccessToken string `db:"-"`
+	Id 			uuid.UUID 	`db:"id" validate:"required"`
+	Username 	string		`db:"username" validate:"required"`
+	Name 	 	string 		`db:"name" validate:"required"`
+	Password 	string 		`db:"password" validate:"required"`
+	Role 	 	string 		`db:"role" validate:"required"`
+	AccessToken string 		`db:"-"`
 	CreatedAt   time.Time   `db:"createdAt"`
 	CreatedBy   uuid.UUID   `db:"createdBy"`
 	UpdatedAt   null.Time   `db:"updatedAt"`
@@ -47,20 +47,27 @@ func CheckPasswordHash(password, hash string) bool {
 }
 
 func (u *User) Update(req UserRequestFormat, user User) (err error) {
+	
+	u.Username = req.Username
+	u.Name = req.Name
+	u.Password = req.Password
+	u.Role = req.Role
+	u.UpdatedAt = null.TimeFrom(time.Now())
+	u.UpdatedBy = nuuid.From(user.Id)
+	
+	err = u.Validate()
+	if err != nil {
+		log.Println(err.Error())
+		return
+	} 
+	
 	hashPassword, err := HashPassword(req.Password)
 	if err != nil {
 		log.Println(err.Error())
 		return 
 	}
-
-	u.Username = req.Username
-	u.Name = req.Name
 	u.Password = hashPassword
-	u.Role = req.Role
-	u.UpdatedAt = null.TimeFrom(time.Now())
-	u.UpdatedBy = nuuid.From(user.Id)
-
-	err = u.Validate()
+	
 	return
 }
 
@@ -71,22 +78,28 @@ func (u *User) Validate() (err error) {
 
 func (u User) NewFromRequestFormat(req UserRequestFormat) (newUser User, err error) {
 	userID, _ := uuid.NewV4()
+	newUser = User{
+		Id: userID,
+		Username: req.Username,
+		Name: req.Name,
+		Password: req.Password,
+		Role: req.Role,
+		CreatedAt:   time.Now(),
+		CreatedBy:   userID,
+	}
+	err = newUser.Validate()
+	if err != nil {
+		log.Println(err.Error())
+		return
+	} 
+	
 	passwordHashed, err := HashPassword(req.Password)
 	if err != nil {
 		log.Println(err.Error())
 		return
 	} 
-	newUser = User{
-		Id: userID,
-		Username: req.Username,
-		Name: req.Name,
-		Password: passwordHashed,
-		Role: req.Role,
-		CreatedAt:   time.Now(),
-		CreatedBy:   userID,
-	}
-
-	err = newUser.Validate()
+	newUser.Password = passwordHashed
+	
 
 	return
 }
@@ -115,10 +128,10 @@ func (u User) ToResponseFormat() UserResponseFormat {
 
 
 type UserRequestFormat struct {
-	Username 	string  `json:"username"`
-	Name 	    string  `json:"name"`
-	Password 	string  `json:"password"`
-	Role 	    string  `json:"role"`
+	Username 	string  `json:"username" validate:"required"`
+	Name 	    string  `json:"name" validate:"required"`
+	Password 	string  `json:"password" validate:"required"`
+	Role 	    string  `json:"role" validate:"required"`
 }
 
 type UserResponseFormat struct {
